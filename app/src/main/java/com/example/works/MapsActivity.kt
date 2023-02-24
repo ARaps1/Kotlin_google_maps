@@ -21,7 +21,9 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
     private lateinit var mMap: GoogleMap
     private lateinit var binding: ActivityMapsBinding
+    // This will store the current location
     private lateinit var currentLocation: Location
+    // This is the provider will use to fetch location
     private lateinit var fusedLocationProviderClient: FusedLocationProviderClient
     private val permissionCode = 101
 
@@ -32,12 +34,15 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         binding = ActivityMapsBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        // This initializes the provider
         fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this)
 
+        // call to start fetching user location
         getUserCurrentLocation()
     }
 
     private fun getUserCurrentLocation() {
+        // Checks if both permissions are disabled then request permissions
         if(ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) !=
                 PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION) !=
             PackageManager.PERMISSION_GRANTED) {
@@ -45,12 +50,21 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
             ActivityCompat.requestPermissions(this,arrayOf(android.Manifest.permission.ACCESS_FINE_LOCATION), permissionCode)
             return
         }
-        val getUserLocation = fusedLocationProviderClient.lastLocation.addOnSuccessListener { location ->
+
+        // If it makes it to this line, it means we have permission.
+
+        //This uses the location provider and if it was successful runs the ccode inside {}
+        fusedLocationProviderClient.lastLocation.addOnSuccessListener { location ->
+            // location could be null if the user turns location services even though the app has permission
             if (location != null) {
+                //stores current location
                 currentLocation = location
                 Toast.makeText(applicationContext, currentLocation.latitude.toString() + "" + currentLocation.longitude.toString(), Toast.LENGTH_LONG).show()
 
-                // The map should only load if the user's location is enabled
+                /*
+                The mapFragment is moved here that way it would only if the user has location enabled.
+                If you want it to load even without location services you can move this back to OnCreate
+                 */
                 val mapFragment = supportFragmentManager
                     .findFragmentById(R.id.map) as SupportMapFragment
                 mapFragment.getMapAsync(this)
@@ -64,7 +78,10 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         grantResults: IntArray
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        // This is switch statement, so if request code is equal to permissionCode then run the things inside
         when(requestCode) {
+            // if grantResults has permissionGranted, it calls getuserCurrentLocation() which should
+            // get past the if statement inside getUserCurrentLocation().
             permissionCode -> if(grantResults.contains(PackageManager.PERMISSION_GRANTED)) {
                 getUserCurrentLocation()
             }
@@ -81,6 +98,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
      * installed Google Play services and returned to the app.
      */
     override fun onMapReady(googleMap: GoogleMap) {
+        // Now once the map is ready, we can use our latLng to do things with the map
         val latLng = LatLng(currentLocation.latitude,currentLocation.longitude)
         val markerOptions = MarkerOptions().position(latLng).title("Current Location")
         mMap = googleMap
